@@ -150,14 +150,12 @@ public class FirebaseService {
     }
 
     public static CompletableFuture<Boolean> addToBlacklist(String userId, String token, List<String> numbers) {
-        Map<String, Object> updates = numbers.stream()
-                .collect(Collectors.toMap(number -> number, number -> true));
+        Map<String, Object> updates = numbers.stream().collect(Collectors.toMap(number -> number, number -> true));
         return updateChildrenAsync("users/" + userId + "/blacklist", updates);
     }
 
     public static CompletableFuture<Boolean> removeFromBlacklist(String userId, String token, List<String> numbers) {
-        Map<String, Object> updates = numbers.stream()
-                .collect(Collectors.toMap(number -> number, number -> null));
+        Map<String, Object> updates = numbers.stream().collect(Collectors.toMap(number -> number, number -> null));
         return updateChildrenAsync("users/" + userId + "/blacklist", updates);
     }
 
@@ -176,5 +174,62 @@ public class FirebaseService {
         return getDataAsync("users/" + userId + "/campaign_templates/" + templateName,
                 new GenericTypeIndicator<Map<String, Object>>() {
                 });
+    }
+
+    public static CompletableFuture<Boolean> saveTemplate(String userId, String token, String templateName,
+            String spintaxMessage, String delay) {
+        String path = "users/" + userId + "/campaign_templates/" + templateName + "/settings";
+        String delayValue = delay.replaceAll("[^0-9]", "");
+        Map<String, Object> settings = new HashMap<>();
+        settings.put("spintax_template", spintaxMessage);
+        settings.put("delay", delayValue);
+        return updateChildrenAsync(path, settings);
+    }
+
+    public static CompletableFuture<Boolean> deleteTemplate(String userId, String token, String templateName) {
+        String path = "users/" + userId + "/campaign_templates/" + templateName;
+        return removeDataAsync(path);
+    }
+
+    // --- AI SETTINGS ---
+    public static CompletableFuture<Boolean> saveAIPersonality(String userId, String accountName, String prompt) {
+        String path = "users/" + userId + "/ai_settings/" + accountName;
+        Map<String, Object> personality = Map.of("personality_prompt", prompt);
+        return updateChildrenAsync(path, personality);
+    }
+
+    public static CompletableFuture<String> getAIPersonality(String userId, String accountName) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        DatabaseReference ref = FirebaseDatabase.getInstance()
+                .getReference("users/" + userId + "/ai_settings/" + accountName + "/personality_prompt");
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                future.complete(dataSnapshot.exists() ? dataSnapshot.getValue(String.class) : "");
+            }
+
+            public void onCancelled(DatabaseError error) {
+                future.completeExceptionally(error.toException());
+            }
+        });
+        return future;
+    }
+
+    /**
+     * Salva um novo relatório de campanha na base de dados.
+     * 
+     * @param userId ID do utilizador.
+     * @param report O objeto ReportModel contendo os dados da campanha.
+     * @return Um CompletableFuture indicando o sucesso da operação.
+     */
+    public static CompletableFuture<Boolean> saveReport(String userId, ReportModel report) {
+        // Gera uma chave única para o novo relatório
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("users/" + userId + "/reports").push();
+
+        // Define o ID da campanha como a chave gerada
+        report.setCampaignId(ref.getKey());
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        ref.setValue(report, (error, ref1) -> future.complete(error == null));
+        return future;
     }
 }

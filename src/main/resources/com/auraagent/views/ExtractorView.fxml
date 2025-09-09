@@ -3,30 +3,18 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<GridPane fx:controller="com.auraagent.controllers.ExtractorController" hgap="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
-    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
-    <columnConstraints>
-        <ColumnConstraints hgrow="NEVER" prefWidth="400.0"/>
-        <ColumnConstraints hgrow="SOMETIMES"/>
-    </columnConstraints>
-    <rowConstraints><RowConstraints vgrow="SOMETIMES"/></rowConstraints>
-
-    <VBox styleClass="central-panel" spacing="15" GridPane.columnIndex="0">
-        <HBox><Button fx:id="connectButton" text="Conectar Celular" onAction="#handleConnect"/><Region HBox.hgrow="ALWAYS"/><Button fx:id="disconnectButton" text="Desconectar" onAction="#handleDisconnect"/></HBox>
-        <HBox><Button fx:id="startButton" text="Iniciar Extração" styleClass="primary-button" onAction="#handleStart"/><Region HBox.hgrow="ALWAYS"/><Button fx:id="stopButton" text="Parar Extração" styleClass="danger-button" onAction="#handleStop"/></HBox>
-        <VBox fx:id="settingsFrame" styleClass="inner-panel" spacing="5">
-            <Label text="Parar Após (tentativas):"/>
-            <TextField fx:id="stopThresholdField" text="10"/>
-            <Label text="Pausa de Rolagem (s):"/>
-            <TextField fx:id="scrollPauseField" text="0.5"/>
-        </VBox>
-        <Label text="Números Encontrados:"/>
-        <ListView fx:id="foundNumbersListView" VBox.vgrow="ALWAYS"/>
-        <Label fx:id="statusText" text="Pronto para conectar."/>
-        <Button fx:id="exportButton" text="Exportar para CSV" onAction="#handleExportCsv" maxWidth="Infinity"/>
-    </VBox>
-
-    <StackPane styleClass="central-panel" GridPane.columnIndex="1">
-        <Label text="Área de Espelhamento (Funcionalidade Nativa Omitida)"/>
-    </StackPane>
-</GridPane>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auraagent.controllers.ExtractorController" spacing="10">
+    <padding>
+        <Insets top="10" right="10" bottom="10" left="10" />
+    </padding>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Delay (ms)"/>
+        <Spinner fx:id="spinnerScrollDelay"/>
+        <Label text="Velocidade Swipe (ms)"/>
+        <Spinner fx:id="spinnerScrollSpeed"/>
+        <Button fx:id="btnStart" text="Iniciar" styleClass="primary-button"/>
+        <Button fx:id="btnStop" text="Parar" styleClass="danger-button"/>
+        <Button fx:id="btnExport" text="Exportar CSV" styleClass="primary-button"/>
+    </HBox>
+    <TextArea fx:id="txtOutput" prefHeight="600" wrapText="true"/>
+</VBox>

@@ -9,6 +9,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.image.Image;
 
 import java.io.IOException;
 
@@ -22,7 +23,15 @@ public class MainApplication extends Application {
         FirebaseService.initialize(); // Inicializa a conexão com o Firebase
         ProcessManager.startNodeServer(); // Inicia o servidor Node.js
 
+        // Adiciona um shutdown hook para garantir que o servidor Node.js seja encerrado ao fechar a aplicação
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Desligando o servidor Node.js via shutdown hook...");
+            ProcessManager.stopNodeServer();
+        }));
+
         primaryStage.setTitle("Aura Agent");
+        primaryStage.setResizable(true); // Adiciona flexibilidade à janela
+        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/logo_aura.ico")));
         showLoginView();
         primaryStage.show();
 
@@ -55,7 +64,6 @@ public class MainApplication extends Application {
             controller.initialize(userId); // Passa o ID do utilizador para o controller principal
 
             primaryStage.setScene(new Scene(root, 1200, 800));
-            primaryStage.centerOnScreen();
 
         } catch (IOException e) {
             e.printStackTrace();

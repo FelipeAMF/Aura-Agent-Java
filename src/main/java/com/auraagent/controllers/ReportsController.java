@@ -36,10 +36,10 @@ public class ReportsController implements MainAppController.InitializableControl
             private final Text failText = new Text();
 
             {
-                // Estrutura do "card"
+                // Estrutura do "card" e aplicação das classes de estilo do CSS
                 dateText.getStyleClass().add("report-card-date");
-                successText.getStyleClass().add("success-label");
-                failText.getStyleClass().add("danger-label");
+                successText.getStyleClass().add("success-label"); // Estilo para texto de sucesso
+                failText.getStyleClass().add("danger-label"); // Estilo para texto de falha
                 card.getStyleClass().add("report-card");
                 card.getChildren().addAll(dateText, totalText, successText, failText);
             }
@@ -59,10 +59,24 @@ public class ReportsController implements MainAppController.InitializableControl
             }
         });
 
+        // A primeira carga de dados acontece quando a vista é mostrada
+    }
+
+    /**
+     * Este método é chamado pelo MainAppController sempre que a tela de Relatórios
+     * é exibida.
+     * Garante que os dados estão sempre atualizados.
+     */
+    @Override
+    public void onViewShown() {
+        System.out.println("[DIAGNÓSTICO] A tela de Relatórios foi exibida. A recarregar dados...");
         refreshData();
     }
 
-    // Ação que pode ser chamada para atualizar os dados da vista
+    /**
+     * Ação que pode ser chamada para atualizar os dados da vista a partir do
+     * Firebase.
+     */
     public void refreshData() {
         if (userId == null || userId.isBlank()) {
             reportsListView.setPlaceholder(new Label("ID de utilizador inválido."));

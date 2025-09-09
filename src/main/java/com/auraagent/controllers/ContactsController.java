@@ -48,6 +48,7 @@ public class ContactsController implements MainAppController.InitializableContro
         FirebaseService.getContactListsAsync(userId, userToken).thenAcceptAsync(lists -> {
             Platform.runLater(() -> {
                 contactLists.clear();
+                contactListToggleGroup.getToggles().clear();
                 if (lists != null) {
                     lists.keySet().stream().sorted().forEach(listName -> {
                         RadioButton rb = new RadioButton(listName);
@@ -152,6 +153,64 @@ public class ContactsController implements MainAppController.InitializableContro
                                 Platform.runLater(this::refreshData);
                         });
             }
+        }
+    }
+
+    @FXML
+    private void handleAddToBlacklist() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Adicionar à Blacklist");
+        dialog.setHeaderText("Digite o número de telefone a ser bloqueado (apenas números):");
+        dialog.setContentText("Número:");
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(number -> {
+            String sanitizedNumber = number.replaceAll("[^0-9]", "");
+            if (!sanitizedNumber.isBlank()) {
+                FirebaseService.addToBlacklist(userId, userToken, List.of(sanitizedNumber))
+                        .thenAccept(success -> {
+                            if (success)
+                                Platform.runLater(this::refreshData);
+                        });
+            }
+        });
+    }
+
+    @FXML
+    private void handleRemoveFromBlacklist() {
+        List<String> selectedNumbers = blacklistNumbersView.getSelectionModel().getSelectedItems();
+
+        if (selectedNumbers.isEmpty()) {
+            JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Aviso", "Nenhum número selecionado para remover.");
+            return;
+        }
+
+        if (JavaFxUtils.showConfirmation(Alert.AlertType.CONFIRMATION, "Confirmar Remoção",
+                "Tem certeza que deseja remover os " + selectedNumbers.size()
+                        + " números selecionados da blacklist?")) {
+            FirebaseService.removeFromBlacklist(userId, userToken, selectedNumbers)
+                    .thenAccept(success -> {
+                        if (success)
+                            Platform.runLater(this::refreshData);
+                    });
+        }
+    }
+
+    @FXML
+    private void handleClearBlacklist() {
+        if (blacklistNumbers.isEmpty()) {
+            JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Aviso", "A blacklist já está vazia.");
+            return;
+        }
+
+        if (JavaFxUtils.showConfirmation(Alert.AlertType.CONFIRMATION, "Confirmar Limpeza Total",
+                "TEM CERTEZA?\n\nEsta ação irá remover TODOS os " + blacklistNumbers.size()
+                        + " números da blacklist. Esta ação não pode ser desfeita.")) {
+            FirebaseService.clearBlacklist(userId, userToken)
+                    .thenAccept(success -> {
+                        if (success)
+                            Platform.runLater(this::refreshData);
+                    });
         }
     }
 }

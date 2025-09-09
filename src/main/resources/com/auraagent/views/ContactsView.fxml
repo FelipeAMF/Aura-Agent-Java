@@ -13,9 +13,9 @@
 
     <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
         <HBox spacing="10">
-            <Button text="Criar Nova Lista" onAction="#handleCreateNewList"/>
-            <Button text="Importar CSV" onAction="#handleImportCsv"/>
-            <Button text="Excluir Lista" onAction="#handleDeleteSelectedList" styleClass="danger-button"/>
+            <Button text="Criar Nova Lista" onAction="#handleCreateNewList" styleClass="primary-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
+            <Button text="Importar CSV" onAction="#handleImportCsv" styleClass="primary-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
+            <Button fx:id="deleteListButton" text="Excluir Lista" onAction="#handleDeleteSelectedList" styleClass="danger-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
         </HBox>
         <Label text="Minhas Listas" styleClass="panel-title"/>
         <ListView fx:id="contactListsView" VBox.vgrow="ALWAYS"/>
@@ -25,9 +25,9 @@
         <Label text="Blacklist (Números Bloqueados)" styleClass="panel-title"/>
         <ListView fx:id="blacklistNumbersView" VBox.vgrow="ALWAYS"/>
         <HBox spacing="10">
-            <Button text="Adicionar"/>
-            <Button text="Remover Selecionados"/>
-            <Button text="Limpar Tudo" styleClass="danger-button"/>
+            <Button text="Adicionar" onAction="#handleAddToBlacklist" styleClass="primary-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
+            <Button text="Remover Selecionados" onAction="#handleRemoveFromBlacklist" styleClass="danger-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
+            <Button text="Limpar Tudo" onAction="#handleClearBlacklist" styleClass="danger-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
         </HBox>
     </VBox>
 </GridPane>

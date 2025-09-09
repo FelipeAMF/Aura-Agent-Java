@@ -16,8 +16,8 @@
     <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
         <Label text="Contas de WhatsApp:" styleClass="panel-title"/>
         <ListView fx:id="accountsListView" VBox.vgrow="ALWAYS"/>
-        <HBox>
-            <Button text="Adicionar Conta" onAction="#handleAddAccount"/>
+        <HBox spacing="10">
+            <Button text="Adicionar Conta" onAction="#handleAddAccount" styleClass="primary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="Desconectar Conta" onAction="#handleDisconnectAccount" styleClass="danger-button"/>
         </HBox>
@@ -27,7 +27,7 @@
         <VBox alignment="CENTER" spacing="20">
             <Label text="QR Code para Conexão" styleClass="panel-title"/>
             <StackPane prefHeight="300.0" prefWidth="300.0">
-                <Pane style="-fx-background-color: white; -fx-background-radius: 8;"/>
+                <Pane style="-fx-background-color: white;-fx-background-radius: 8;"/>
                 <ImageView fx:id="qrCodeImageView" fitHeight="300.0" fitWidth="300.0" preserveRatio="true"/>
                 <Text fx:id="qrStatusText" text="Selecione ou adicione uma conta." textAlignment="CENTER" wrappingWidth="280.0"/>
             </StackPane>

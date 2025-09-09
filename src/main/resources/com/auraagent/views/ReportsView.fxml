@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<GridPane hgap="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auraagent.controllers.ReportsController">
+    <padding>
+        <Insets bottom="20" left="20" right="20" top="20" />
+    </padding>
+    <rowConstraints>
+        <RowConstraints vgrow="SOMETIMES" />
+    </rowConstraints>
+
+    <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0" GridPane.hgrow="ALWAYS">
+        <Label text="Relatórios de Campanha" styleClass="panel-title" />
+        <ListView fx:id="reportsListView" VBox.vgrow="ALWAYS" />
+    </VBox>
+</GridPane>

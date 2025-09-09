@@ -15,8 +15,8 @@
         <Label text="Modelos Salvos" styleClass="panel-title"/>
         <ListView fx:id="templatesListView" VBox.vgrow="ALWAYS"/>
         <HBox spacing="10">
-            <Button text="Novo Modelo" onAction="#handleNewTemplate"/>
-            <Button text="Excluir" onAction="#handleDeleteTemplate" styleClass="danger-button"/>
+            <Button text="Novo Modelo" onAction="#handleNewTemplate" styleClass="primary-button"/>
+            <Button fx:id="deleteButton" text="Excluir" onAction="#handleDeleteTemplate" styleClass="danger-button"/>
         </HBox>
     </VBox>
     

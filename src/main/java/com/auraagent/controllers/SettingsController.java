@@ -42,7 +42,6 @@ public class SettingsController implements MainAppController.InitializableContro
         this.userId = userId;
         accountsListView.setItems(accounts);
 
-        // Define como cada conta é exibida na lista
         accountsListView.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(WhatsappAccount item, boolean empty) {
@@ -56,51 +55,31 @@ public class SettingsController implements MainAppController.InitializableContro
             }
         });
 
-        // Atualiza o QR Code quando uma conta é selecionada
         accountsListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             updateQrCodeDisplay(newVal);
         });
 
-        // Inicia o timer para atualização automática
         setupStatusTimer();
-        refreshData(); // Faz a primeira chamada imediatamente
-    }
-
-    // O MainAppController chamará este método quando a vista ficar visível
-    public void onShown() {
-        if (statusTimer != null && statusTimer.getStatus() != Timeline.Status.RUNNING) {
-            statusTimer.play();
-            refreshData();
-        }
-    }
-
-    // O MainAppController chamará este método quando a vista ficar oculta
-    public void onHidden() {
-        if (statusTimer != null) {
-            statusTimer.stop();
-        }
+        refreshData();
     }
 
     private void setupStatusTimer() {
         statusTimer = new Timeline(new KeyFrame(Duration.seconds(3), event -> refreshData()));
         statusTimer.setCycleCount(Timeline.INDEFINITE);
+        statusTimer.play();
     }
 
     private void refreshData() {
         WhatsappAccount currentSelection = accountsListView.getSelectionModel().getSelectedItem();
-
         whatsappService.getStatusAsync().thenAcceptAsync(sessions -> {
             Platform.runLater(() -> {
                 accounts.setAll(sessions);
-                // Tenta manter a seleção anterior
                 if (currentSelection != null) {
-                    // Procura pela conta com o mesmo sessionId na nova lista
                     Optional<WhatsappAccount> reselect = accounts.stream()
                             .filter(acc -> acc.getSessionId().equals(currentSelection.getSessionId()))
                             .findFirst();
                     reselect.ifPresent(acc -> accountsListView.getSelectionModel().select(acc));
                 }
-                // Atualiza o QR code caso o status da conta selecionada tenha mudado
                 updateQrCodeDisplay(accountsListView.getSelectionModel().getSelectedItem());
             });
         });
@@ -135,7 +114,7 @@ public class SettingsController implements MainAppController.InitializableContro
             qrStatusText.setVisible(true);
         } else {
             qrCodeImageView.setImage(null);
-            qrStatusText.setText("A inicializar...\nIsto pode demorar alguns segundos.");
+            qrStatusText.setText("Aguardando status do servidor...");
             qrCodeImageView.setVisible(false);
             qrStatusText.setVisible(true);
         }
@@ -145,25 +124,32 @@ public class SettingsController implements MainAppController.InitializableContro
     private void handleAddAccount() {
         TextInputDialog dialog = new TextInputDialog("Nova_Conta");
         dialog.setTitle("Nova Conta");
-        dialog.setHeaderText("Digite um nome para a nova conta (ex: Vendas):");
-        dialog.setContentText("ID da Sessão:");
+        dialog.setHeaderText("Digite um nome para a nova conta (sem espaços ou caracteres especiais):");
+        dialog.setContentText("Nome da Sessão:");
 
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(sessionId -> {
             if (!sessionId.isBlank()) {
-                String sanitizedSessionId = sessionId.replaceAll("[^a-zA-Z0-9_-]", "-");
-
+                String sanitizedSessionId = sessionId.replaceAll("[^a-zA-Z0-9_-]", "");
                 boolean exists = accounts.stream()
                         .anyMatch(acc -> acc.getSessionId().equalsIgnoreCase(sanitizedSessionId));
                 if (exists) {
                     JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Aviso", "Uma conta com este nome já existe.");
                     return;
                 }
-
-                // whatsappService.connectAsync(sanitizedSessionId); // Chamada real ao serviço
-                System.out.println("A adicionar conta: " + sanitizedSessionId);
-                // Dá um tempo para o servidor gerar o QR code antes de atualizar
-                new Timeline(new KeyFrame(Duration.seconds(1.5), e -> refreshData())).play();
+                whatsappService.connectAsync(sanitizedSessionId)
+                        .thenAccept(success -> {
+                            Platform.runLater(() -> {
+                                if (success) {
+                                    JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Sucesso",
+                                            "Solicitação de conexão enviada para a nova conta. Aguarde o QR Code.");
+                                } else {
+                                    JavaFxUtils.showAlert(Alert.AlertType.ERROR, "Erro",
+                                            "Não foi possível conectar a nova conta.");
+                                }
+                                refreshData();
+                            });
+                        });
             }
         });
     }
@@ -175,9 +161,19 @@ public class SettingsController implements MainAppController.InitializableContro
             JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Aviso", "Selecione uma conta da lista para desconectar.");
             return;
         }
-
-        // whatsappService.disconnectAsync(selected.getSessionId()); // Chamada real
-        System.out.println("A desconectar conta: " + selected.getSessionId());
-        new Timeline(new KeyFrame(Duration.seconds(1.5), e -> refreshData())).play();
+        whatsappService.disconnectAsync(selected.getSessionId())
+                .thenAccept(success -> {
+                    Platform.runLater(() -> {
+                        if (success) {
+                            JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Sucesso",
+                                    "Solicitação de desconexão enviada.");
+                        } else {
+                            JavaFxUtils.showAlert(Alert.AlertType.ERROR, "Erro", "Erro ao desconectar.");
+                        }
+                        refreshData();
+                    });
+                });
+        qrCodeImageView.setImage(null);
+        qrStatusText.setText("Desconectando... Aguarde.");
     }
 }
