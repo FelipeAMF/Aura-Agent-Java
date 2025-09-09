@@ -1,43 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
-<?import javafx.scene.text.Font?>
 
-<StackPane fx:controller="com.auraagent.controllers.LoginController"
-           xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-           styleClass="root" stylesheets="@/css/styles.css">
-    
-    <Pane styleClass="dark-overlay"/>
+<BorderPane fx:id="rootPane" styleClass="login-root" stylesheets="@/css/styles.css"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auraagent.controllers.LoginController">
 
-    <VBox alignment="CENTER" spacing="15" styleClass="central-panel">
-        <padding>
-            <Insets top="50" right="40" bottom="50" left="40"/>
-        </padding>
-        
-        <ImageView fitWidth="200" preserveRatio="true">
-            <image>
-                <Image url="@/images/logo_aura.png"/>
-            </image>
-        </ImageView>
+    <top>
+        <HBox alignment="CENTER_LEFT" styleClass="title-bar-login">
+            <padding><Insets left="15" right="10"/></padding>
+            <ImageView fitHeight="30.0" preserveRatio="true">
+                <image>
+                    <Image url="@/images/logo_aura.png"/>
+                </image>
+            </ImageView>
+            <Region HBox.hgrow="ALWAYS" />
 
-        <Text text="LOGIN" fill="white" styleClass="welcome-title">
-            <font>
-                <Font name="Segoe UI Bold" size="24.0"/>
-            </font>
-        </Text>
-        
-        <TextField fx:id="emailField" promptText="EMAIL" />
-        
-        <PasswordField fx:id="passwordField" promptText="SENHA" />
-        
-        <CheckBox fx:id="rememberMeCheckBox" text="Lembrar-me" style="-fx-text-fill: #E0E0E0;" maxWidth="Infinity"/>
-        
-        <Button fx:id="loginButton" text="Entrar" onAction="#handleLogin" maxWidth="Infinity" styleClass="primary-button" />
-        
-        <Text fx:id="statusMessage" styleClass="danger-label" textAlignment="CENTER" wrappingWidth="380.0" />
-    </VBox>
-</StackPane>
+            <HBox alignment="CENTER" styleClass="window-buttons-container">
+                <Button onAction="#handleMinimize" styleClass="window-button">
+                    <graphic>
+                        <ImageView fitHeight="8.0" fitWidth="8.0" preserveRatio="true" styleClass="minimize-icon-image">
+                            <image><Image url="@/images/minimize.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                <Button onAction="#handleMaximize" styleClass="window-button">
+                    <graphic>
+                        <ImageView fitHeight="8.0" fitWidth="8.0" preserveRatio="true" styleClass="maximize-icon-image">
+                            <image><Image url="@/images/maximize.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                <Button onAction="#handleClose" styleClass="window-button, close-button">
+                    <graphic>
+                        <ImageView fitHeight="8.0" fitWidth="8.0" preserveRatio="true" styleClass="close-icon-image">
+                            <image><Image url="@/images/close.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+            </HBox>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox alignment="CENTER" maxWidth="340" spacing="20" styleClass="login-panel">
+            <effect>
+                <DropShadow color="#00000080" radius="20" spread="0.1"/>
+            </effect>
+            <padding>
+                <Insets bottom="40" left="40" right="40" top="40"/>
+            </padding>
+
+            <ImageView fitHeight="60.0" preserveRatio="true" smooth="true">
+                <image>
+                    <Image url="@/images/logo_aura.png"/>
+                </image>
+            </ImageView>
+
+            <Text styleClass="login-title" text="BEM-VINDO"/>
+
+            <VBox spacing="15">
+                <TextField fx:id="emailField" promptText="Email" styleClass="login-text-field"/>
+                <PasswordField fx:id="passwordField" promptText="Senha" styleClass="login-text-field"/>
+                <CheckBox fx:id="rememberMeCheckBox" styleClass="login-checkbox" text="Lembrar-me"/>
+            </VBox>
+
+            <Button fx:id="loginButton" onAction="#handleLogin" styleClass="login-button" text="Entrar"/>
+
+            <Text fx:id="statusMessage" styleClass="danger-label" textAlignment="CENTER" wrappingWidth="280.0" />
+        </VBox>
+    </center>
+</BorderPane>

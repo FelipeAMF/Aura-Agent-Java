@@ -1,49 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<GridPane hgap="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auraagent.controllers.WhatsAppController">
-    <padding>
-        <Insets bottom="20" left="20" right="20" top="20" />
-    </padding>
-    <columnConstraints>
-        <ColumnConstraints hgrow="NEVER" prefWidth="350.0" />
-        <ColumnConstraints hgrow="SOMETIMES" />
-    </columnConstraints>
-    <rowConstraints>
-        <RowConstraints vgrow="SOMETIMES" />
-    </rowConstraints>
+<ScrollPane fitToWidth="true" styleClass="scroll-pane"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auraagent.controllers.WhatsAppController">
+    <VBox spacing="20" style="-fx-padding: 20;">
 
-    <VBox spacing="15" styleClass="central-panel" GridPane.columnIndex="0">
-        <Label styleClass="panel-title" text="Configuração do Aquecedor" />
-        <Label text="Intervalo entre mensagens (s):" />
-        <TextField fx:id="intervalSecondsField" text="15" />
-        <Label text="Mensagens para o Aquecedor (uma por linha):" />
-        <TextArea fx:id="warmerMessagesArea" prefHeight="100.0" promptText="Olá, tudo bem?\nComo vai você?\nBom dia!" />
-        <Label text="Contas Ativas para Aquecimento:" />
-        <ListView fx:id="accountsListView" VBox.vgrow="ALWAYS" />
-        <GridPane hgap="10">
+        <GridPane hgap="20">
             <columnConstraints>
-                <ColumnConstraints hgrow="SOMETIMES" />
-                <ColumnConstraints hgrow="SOMETIMES" />
+                <ColumnConstraints hgrow="SOMETIMES" percentWidth="40.0" minWidth="350"/>
+                <ColumnConstraints hgrow="SOMETIMES" percentWidth="60.0"/>
             </columnConstraints>
-            <Button fx:id="startButton" onAction="#handleStartWarmer" styleClass="primary-button" text="Iniciar Aquecedor" maxWidth="Infinity" />
-            <Button fx:id="stopButton" onAction="#handleStopWarmer" styleClass="danger-button" text="Parar Aquecedor" maxWidth="Infinity" GridPane.columnIndex="1" />
+
+            <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
+                <Label text="Configuração do Aquecedor" styleClass="panel-title"/>
+                <Separator/>
+                
+                <VBox spacing="5">
+                    <Label text="Intervalo entre mensagens (s):"/>
+                    <TextField fx:id="intervalSecondsField" text="15"/>
+                </VBox>
+                
+                <VBox spacing="5" VBox.vgrow="ALWAYS">
+                    <Label text="Mensagens para o Aquecedor (uma por linha):"/>
+                    <TextArea fx:id="warmerMessagesArea" prefHeight="150" wrapText="true"
+                              promptText="Olá, tudo bem?&#10;Como vai você?&#10;Bom dia!"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Contas Ativas para Aquecimento:"/>
+                    <ListView fx:id="accountsListView" prefHeight="200"/>
+                </VBox>
+                
+                <GridPane hgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    <Button fx:id="startButton" onAction="#handleStartWarmer" text="Iniciar Aquecedor" styleClass="primary-button" maxWidth="Infinity" GridPane.columnIndex="0"/>
+                    <Button fx:id="stopButton" onAction="#handleStopWarmer" text="Parar Aquecedor" styleClass="danger-button" maxWidth="Infinity" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+
+            <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="1">
+                <Label text="Registo de Atividade" styleClass="panel-title"/>
+                <Separator/>
+                <TextArea fx:id="logOutputArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS"/>
+            </VBox>
         </GridPane>
     </VBox>
-
-    <VBox spacing="10" styleClass="central-panel" GridPane.columnIndex="1">
-        <Label styleClass="panel-title" text="Registo de Atividade" />
-        <TextArea fx:id="logOutputArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" />
-    </VBox>
-</GridPane>
+</ScrollPane>

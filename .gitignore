@@ -2,6 +2,18 @@
 servidor-node/
 target/
 src/target/
+.wwebjs_auth/
+.wwebjs_cache/
+model/
+debug/
+auraagent-runtime/
+vendor/
+
+# Arquivos
+*.jar
+*.bat
+script.iss
+build-installer.ps1
 
 # Arquivos de log
 *.log

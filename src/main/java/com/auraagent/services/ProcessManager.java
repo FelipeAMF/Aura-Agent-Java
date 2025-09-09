@@ -11,14 +11,15 @@ import java.util.concurrent.TimeUnit;
 
 public class ProcessManager {
     private static Process nodeProcess;
+    private static Process aiServerProcess;
     private static ScheduledExecutorService healthCheckScheduler;
     private static final String SERVER_BASE_URL = "http://localhost";
     private static int currentPort = 3000;
     private static final int MAX_PORT_ATTEMPTS = 10;
 
+    // ================= NODE SERVER =================
     public static void startNodeServer() {
         try {
-            // Verificar se o servidor já está rodando
             Integer runningPort = findRunningServer();
             if (runningPort != null) {
                 currentPort = runningPort;
@@ -27,7 +28,6 @@ public class ProcessManager {
                 return;
             }
 
-            // Tentar iniciar em portas diferentes
             boolean started = false;
             for (int attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++) {
                 if (tryStartServer(currentPort)) {
@@ -58,7 +58,6 @@ public class ProcessManager {
 
                 nodeProcess = pb.start();
 
-                // Ler output do processo
                 new Thread(() -> {
                     try (BufferedReader reader = new BufferedReader(
                             new InputStreamReader(nodeProcess.getInputStream()))) {
@@ -90,8 +89,7 @@ public class ProcessManager {
     }
 
     private static Integer findRunningServer() {
-        // Check a wider range of ports to find existing Node.js servers
-        for (int port = 3000; port < 3020; port++) { // Increased range to 3020
+        for (int port = 3000; port < 3020; port++) {
             if (isServerRunning(port)) {
                 return port;
             }
@@ -149,7 +147,7 @@ public class ProcessManager {
 
         if (nodeProcess != null && nodeProcess.isAlive()) {
             nodeProcess.destroyForcibly();
-            nodeProcess = null; // Clear the reference
+            nodeProcess = null;
         }
 
         try {
@@ -161,6 +159,25 @@ public class ProcessManager {
         } catch (IOException e) {
             System.err.println("Erro ao limpar processos Node: " + e.getMessage());
         }
+    }
+
+    // ================= AI SERVER =================
+    public static void setAiServerProcess(Process process) {
+        aiServerProcess = process;
+    }
+
+    public static void stopAiServer() {
+        if (aiServerProcess != null && aiServerProcess.isAlive()) {
+            aiServerProcess.destroyForcibly();
+            aiServerProcess = null;
+            System.out.println("✅ Servidor de IA encerrado.");
+        }
+    }
+
+    // ================= STOP ALL =================
+    public static void stopAll() {
+        stopNodeServer();
+        stopAiServer();
     }
 
     public static int getCurrentPort() {

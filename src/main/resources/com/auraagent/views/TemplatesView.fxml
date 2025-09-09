@@ -3,31 +3,48 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<GridPane fx:controller="com.auraagent.controllers.TemplatesController" hgap="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
-    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
-    <columnConstraints>
-        <ColumnConstraints hgrow="NEVER" prefWidth="350.0"/>
-        <ColumnConstraints hgrow="SOMETIMES"/>
-    </columnConstraints>
-    <rowConstraints><RowConstraints vgrow="SOMETIMES"/></rowConstraints>
-    
-    <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
-        <Label text="Modelos Salvos" styleClass="panel-title"/>
-        <ListView fx:id="templatesListView" VBox.vgrow="ALWAYS"/>
-        <HBox spacing="10">
-            <Button text="Novo Modelo" onAction="#handleNewTemplate" styleClass="primary-button"/>
-            <Button fx:id="deleteButton" text="Excluir" onAction="#handleDeleteTemplate" styleClass="danger-button"/>
-        </HBox>
+<ScrollPane fitToWidth="true" styleClass="scroll-pane"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auraagent.controllers.TemplatesController">
+    <VBox spacing="20" style="-fx-padding: 20;">
+
+        <GridPane hgap="20">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" percentWidth="40.0" minWidth="300"/>
+                <ColumnConstraints hgrow="SOMETIMES" percentWidth="60.0"/>
+            </columnConstraints>
+
+            <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
+                <Label text="Modelos Salvos" styleClass="panel-title"/>
+                <Separator/>
+                <ListView fx:id="templatesListView" VBox.vgrow="ALWAYS" prefHeight="500"/>
+                <GridPane hgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints hgrow="SOMETIMES"/>
+                    </columnConstraints>
+                    <Button text="Novo Modelo" onAction="#handleNewTemplate" styleClass="primary-button" maxWidth="Infinity" GridPane.columnIndex="0"/>
+                    <Button fx:id="deleteButton" text="Excluir" onAction="#handleDeleteTemplate" styleClass="danger-button" maxWidth="Infinity" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+
+            <VBox fx:id="editorPane" styleClass="central-panel" spacing="10" GridPane.columnIndex="1" visible="false">
+                <Label text="Editor de Modelo" styleClass="panel-title"/>
+                <Separator/>
+                <VBox spacing="5">
+                    <Label text="Nome do Modelo:"/>
+                    <TextField fx:id="nameField" promptText="Ex: Campanha de Lançamento"/>
+                </VBox>
+                <VBox spacing="5" VBox.vgrow="ALWAYS">
+                    <Label text="Conteúdo da Mensagem (use {spintax} e {nome})"/>
+                    <TextArea fx:id="spintaxContentArea" wrapText="true" VBox.vgrow="ALWAYS" prefHeight="400"/>
+                </VBox>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Intervalo de envio (segundos):"/>
+                    <TextField fx:id="delayField" promptText="Ex: 10" HBox.hgrow="ALWAYS"/>
+                </HBox>
+                <Button fx:id="saveButton" text="Salvar Modelo" onAction="#handleSaveTemplate" maxWidth="Infinity" styleClass="primary-button"/>
+            </VBox>
+        </GridPane>
     </VBox>
-    
-    <VBox fx:id="editorPane" styleClass="central-panel" spacing="10" GridPane.columnIndex="1" visible="false">
-        <Label text="Editor de Modelo" styleClass="panel-title"/>
-        <Label text="Nome do Modelo:"/>
-        <TextField fx:id="nameField"/>
-        <Label text="Conteúdo da Mensagem (Spintax):"/>
-        <TextArea fx:id="spintaxContentArea" wrapText="true" VBox.vgrow="ALWAYS"/>
-        <Label text="Intervalo (s):"/>
-        <TextField fx:id="delayField"/>
-        <Button fx:id="saveButton" text="Salvar Alterações" onAction="#handleSaveTemplate" maxWidth="Infinity" styleClass="primary-button"/>
-    </VBox>
-</GridPane>
+</ScrollPane>

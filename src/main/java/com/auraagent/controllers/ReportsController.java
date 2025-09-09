@@ -26,8 +26,6 @@ public class ReportsController implements MainAppController.InitializableControl
         this.userId = userId;
         reportsListView.setItems(reports);
 
-        // Define como cada item (ReportModel) é renderizado na lista.
-        // Isto cria o "card" visual para cada relatório.
         reportsListView.setCellFactory(lv -> new ListCell<>() {
             private final VBox card = new VBox(5);
             private final Text dateText = new Text();
@@ -36,10 +34,13 @@ public class ReportsController implements MainAppController.InitializableControl
             private final Text failText = new Text();
 
             {
-                // Estrutura do "card" e aplicação das classes de estilo do CSS
+                // APLICA O ESTILO DIRETAMENTE NO CÓDIGO
+                dateText.setStyle("-fx-fill: #E0E0E0;");
+                totalText.setStyle("-fx-fill: #E0E0E0;");
+
                 dateText.getStyleClass().add("report-card-date");
-                successText.getStyleClass().add("success-label"); // Estilo para texto de sucesso
-                failText.getStyleClass().add("danger-label"); // Estilo para texto de falha
+                successText.getStyleClass().add("success-label");
+                failText.getStyleClass().add("danger-label");
                 card.getStyleClass().add("report-card");
                 card.getChildren().addAll(dateText, totalText, successText, failText);
             }
@@ -58,25 +59,13 @@ public class ReportsController implements MainAppController.InitializableControl
                 }
             }
         });
-
-        // A primeira carga de dados acontece quando a vista é mostrada
     }
 
-    /**
-     * Este método é chamado pelo MainAppController sempre que a tela de Relatórios
-     * é exibida.
-     * Garante que os dados estão sempre atualizados.
-     */
     @Override
     public void onViewShown() {
-        System.out.println("[DIAGNÓSTICO] A tela de Relatórios foi exibida. A recarregar dados...");
         refreshData();
     }
 
-    /**
-     * Ação que pode ser chamada para atualizar os dados da vista a partir do
-     * Firebase.
-     */
     public void refreshData() {
         if (userId == null || userId.isBlank()) {
             reportsListView.setPlaceholder(new Label("ID de utilizador inválido."));
@@ -85,23 +74,18 @@ public class ReportsController implements MainAppController.InitializableControl
 
         reportsListView.setPlaceholder(new Label("A carregar relatórios..."));
 
-        // --- LÓGICA FUNCIONAL ---
         FirebaseService.getReportsAsync(userId).thenAcceptAsync(reportsData -> {
-            // Garante que a atualização da UI acontece no thread do JavaFX
             Platform.runLater(() -> {
                 reports.clear();
                 if (reportsData != null && !reportsData.isEmpty()) {
-                    // Ordena os relatórios pela data, do mais recente para o mais antigo
                     reportsData.values().stream()
                             .sorted(Comparator.comparing(ReportModel::getDate).reversed())
                             .forEach(reports::add);
                 } else {
-                    // Se não houver dados, mostra uma mensagem
                     reportsListView.setPlaceholder(new Label("Nenhum relatório encontrado."));
                 }
             });
         }).exceptionally(ex -> {
-            // Em caso de erro na chamada ao serviço, mostra uma mensagem de erro
             Platform.runLater(() -> {
                 reportsListView.setPlaceholder(new Label("Erro ao carregar relatórios."));
                 ex.printStackTrace();

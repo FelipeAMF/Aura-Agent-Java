@@ -3,31 +3,78 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<GridPane fx:controller="com.auraagent.controllers.ContactsController" hgap="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
-    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
-    <columnConstraints>
-        <ColumnConstraints hgrow="SOMETIMES" />
-        <ColumnConstraints hgrow="SOMETIMES" />
-    </columnConstraints>
-    <rowConstraints><RowConstraints vgrow="SOMETIMES"/></rowConstraints>
+<ScrollPane fitToWidth="true" styleClass="scroll-pane"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auraagent.controllers.ContactsController">
+    <VBox spacing="20" style="-fx-padding: 20;">
 
-    <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
-        <HBox spacing="10">
-            <Button text="Criar Nova Lista" onAction="#handleCreateNewList" styleClass="primary-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
-            <Button text="Importar CSV" onAction="#handleImportCsv" styleClass="primary-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
-            <Button fx:id="deleteListButton" text="Excluir Lista" onAction="#handleDeleteSelectedList" styleClass="danger-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
-        </HBox>
-        <Label text="Minhas Listas" styleClass="panel-title"/>
-        <ListView fx:id="contactListsView" VBox.vgrow="ALWAYS"/>
-    </VBox>
+        <GridPane hgap="20">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0"/>
+            </columnConstraints>
 
-    <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="1">
-        <Label text="Blacklist (Números Bloqueados)" styleClass="panel-title"/>
-        <ListView fx:id="blacklistNumbersView" VBox.vgrow="ALWAYS"/>
-        <HBox spacing="10">
-            <Button text="Adicionar" onAction="#handleAddToBlacklist" styleClass="primary-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
-            <Button text="Remover Selecionados" onAction="#handleRemoveFromBlacklist" styleClass="danger-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
-            <Button text="Limpar Tudo" onAction="#handleClearBlacklist" styleClass="danger-button" HBox.hgrow="SOMETIMES" maxWidth="Infinity"/>
-        </HBox>
+            <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="0">
+                <Label text="Minhas Listas de Contatos" styleClass="panel-title"/>
+                <Separator/>
+                <GridPane hgap="10" alignment="CENTER">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES"/>
+                        <ColumnConstraints hgrow="SOMETIMES"/>
+                    </columnConstraints>
+                    <Button text="Criar Nova Lista" onAction="#handleCreateNewList" maxWidth="Infinity" GridPane.columnIndex="0"/>
+                    <Button text="Importar Contatos (CSV)" onAction="#handleImportCsv" maxWidth="Infinity" GridPane.columnIndex="1"/>
+                </GridPane>
+                <ListView fx:id="contactListsView" VBox.vgrow="ALWAYS" prefHeight="400"/>
+                <Button fx:id="deleteListButton" text="Excluir Lista Selecionada" onAction="#handleDeleteSelectedList" styleClass="danger-button" maxWidth="Infinity"/>
+            </VBox>
+
+            <VBox styleClass="central-panel" spacing="10" GridPane.columnIndex="1">
+                <Label text="Blacklist (Números Bloqueados)" styleClass="panel-title"/>
+                <Separator/>
+                <Button text="Adicionar Número à Blacklist" onAction="#handleAddToBlacklist" maxWidth="Infinity"/>
+                <ListView fx:id="blacklistNumbersView" VBox.vgrow="ALWAYS" prefHeight="400"/>
+                <GridPane hgap="10" alignment="CENTER">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    <Button text="Remover Selecionados" onAction="#handleRemoveFromBlacklist" styleClass="danger-button" maxWidth="Infinity" GridPane.columnIndex="0"/>
+                    <Button text="Limpar Tudo" onAction="#handleClearBlacklist" styleClass="danger-button" maxWidth="Infinity" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+        </GridPane>
+
+        <VBox fx:id="validatorPane" styleClass="central-panel" spacing="10">
+            <Label text="Validador de Números" styleClass="panel-title"/>
+            <Separator/>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Selecione uma lista de contatos acima e uma conta de envio para iniciar a validação."/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <ComboBox fx:id="senderAccountComboBox" promptText="Selecione uma conta de envio"/>
+                <Button fx:id="validateButton" text="Validar Lista Selecionada" onAction="#handleValidateList"/>
+            </HBox>
+            <ProgressBar fx:id="validationProgressBar" progress="0.0" maxWidth="Infinity" visible="false"/>
+            <Label fx:id="validationStatusLabel" text="" managed="false"/>
+            
+            <GridPane hgap="20" fx:id="resultsPane" visible="false" managed="false">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0"/>
+                    <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0"/>
+                </columnConstraints>
+                
+                <VBox spacing="5" GridPane.columnIndex="0">
+                    <Label text="Números Válidos"/>
+                    <ListView fx:id="validNumbersListView" prefHeight="200"/>
+                    <Button text="Criar nova lista com válidos" onAction="#handleCreateListFromValid"/>
+                </VBox>
+                
+                <VBox spacing="5" GridPane.columnIndex="1">
+                    <Label text="Números Inválidos"/>
+                    <ListView fx:id="invalidNumbersListView" prefHeight="200"/>
+                    <Button text="Remover inválidos da lista original" onAction="#handleRemoveInvalidFromList"/>
+                </VBox>
+            </GridPane>
+        </VBox>
     </VBox>
-</GridPane>
+</ScrollPane>

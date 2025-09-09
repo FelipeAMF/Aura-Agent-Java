@@ -47,6 +47,14 @@ public class FirebaseService {
         }
     }
 
+    // NOVO MÉTODO PRIVADO PARA LIMPAR AS CHAVES
+    private static String sanitizeKey(String key) {
+        if (key == null)
+            return null;
+        // Remove todos os caracteres que não são letras, números ou underscore
+        return key.replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
     // --- AUTENTICAÇÃO ---
     public static CompletableFuture<FirebaseAuthResponse> signInAsync(String email, String password) {
         String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + FIREBASE_API_KEY;
@@ -137,8 +145,19 @@ public class FirebaseService {
     public static CompletableFuture<Boolean> addContactsToList(String userId, String listName, List<String> contacts) {
         Map<String, Object> updates = new HashMap<>();
         for (String contact : contacts) {
-            updates.put(contact, true);
+            // USA O MÉTODO DE LIMPEZA
+            updates.put(sanitizeKey(contact), true);
         }
+        String path = "users/" + userId + "/contact_lists/" + listName;
+        return updateChildrenAsync(path, updates);
+    }
+
+    public static CompletableFuture<Boolean> removeContactsFromList(String userId, String listName,
+            List<String> contacts) {
+        Map<String, Object> updates = contacts.stream()
+                .collect(Collectors.toMap(
+                        contact -> sanitizeKey(contact), // USA O MÉTODO DE LIMPEZA
+                        contact -> null));
         String path = "users/" + userId + "/contact_lists/" + listName;
         return updateChildrenAsync(path, updates);
     }
@@ -150,12 +169,16 @@ public class FirebaseService {
     }
 
     public static CompletableFuture<Boolean> addToBlacklist(String userId, String token, List<String> numbers) {
-        Map<String, Object> updates = numbers.stream().collect(Collectors.toMap(number -> number, number -> true));
+        Map<String, Object> updates = numbers.stream().collect(Collectors.toMap(
+                number -> sanitizeKey(number), // USA O MÉTODO DE LIMPEZA
+                number -> true));
         return updateChildrenAsync("users/" + userId + "/blacklist", updates);
     }
 
     public static CompletableFuture<Boolean> removeFromBlacklist(String userId, String token, List<String> numbers) {
-        Map<String, Object> updates = numbers.stream().collect(Collectors.toMap(number -> number, number -> null));
+        Map<String, Object> updates = numbers.stream().collect(Collectors.toMap(
+                number -> sanitizeKey(number), // USA O MÉTODO DE LIMPEZA
+                number -> null));
         return updateChildrenAsync("users/" + userId + "/blacklist", updates);
     }
 
@@ -214,20 +237,9 @@ public class FirebaseService {
         return future;
     }
 
-    /**
-     * Salva um novo relatório de campanha na base de dados.
-     * 
-     * @param userId ID do utilizador.
-     * @param report O objeto ReportModel contendo os dados da campanha.
-     * @return Um CompletableFuture indicando o sucesso da operação.
-     */
     public static CompletableFuture<Boolean> saveReport(String userId, ReportModel report) {
-        // Gera uma chave única para o novo relatório
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("users/" + userId + "/reports").push();
-
-        // Define o ID da campanha como a chave gerada
         report.setCampaignId(ref.getKey());
-
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         ref.setValue(report, (error, ref1) -> future.complete(error == null));
         return future;

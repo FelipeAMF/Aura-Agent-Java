@@ -10,10 +10,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 
 import java.util.function.Consumer;
-import java.util.prefs.Preferences; // Import necessário
+import java.util.prefs.Preferences;
 
 public class LoginController {
 
@@ -26,7 +28,9 @@ public class LoginController {
     @FXML
     private Text statusMessage;
     @FXML
-    private CheckBox rememberMeCheckBox; // Referência para a nova CheckBox
+    private CheckBox rememberMeCheckBox;
+    @FXML
+    private BorderPane rootPane;
 
     private final SimpleStringProperty email = new SimpleStringProperty("");
     private final SimpleStringProperty statusMessageText = new SimpleStringProperty("");
@@ -35,8 +39,9 @@ public class LoginController {
 
     private Consumer<String> onLoginSuccess;
 
-    // Objeto para aceder às preferências salvas no computador do utilizador
     private final Preferences prefs = Preferences.userNodeForPackage(LoginController.class);
+    private double xOffset = 0;
+    private double yOffset = 0;
 
     @FXML
     public void initialize() {
@@ -45,8 +50,19 @@ public class LoginController {
         loginButton.textProperty().bind(loginButtonText);
         loginButton.disableProperty().bind(isLoginEnabled.not());
 
-        // --- LÓGICA PARA CARREGAR DADOS SALVOS ---
         loadPreferences();
+
+        // Lógica para arrastar a janela (necessário para janela sem decoração)
+        rootPane.setOnMousePressed(event -> {
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+            xOffset = event.getSceneX();
+            yOffset = event.getSceneY();
+        });
+        rootPane.setOnMouseDragged(event -> {
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+            stage.setX(event.getScreenX() - xOffset);
+            stage.setY(event.getScreenY() - yOffset);
+        });
     }
 
     public void setOnLoginSuccess(Consumer<String> onLoginSuccess) {
@@ -65,10 +81,10 @@ public class LoginController {
 
         updateUIForLogin(true);
 
+        // Chama o método correto: signInAsync
         FirebaseService.signInAsync(email.get(), password)
                 .thenAcceptAsync(user -> {
                     if (user != null && user.getLocalId() != null) {
-                        // --- LÓGICA PARA SALVAR DADOS ---
                         savePreferences();
 
                         if (onLoginSuccess != null) {
@@ -94,9 +110,6 @@ public class LoginController {
         loginButtonText.set(isLoggingIn ? "A entrar..." : "Entrar");
     }
 
-    /**
-     * Carrega o e-mail e a senha salvos (se existirem) quando a aplicação inicia.
-     */
     private void loadPreferences() {
         String savedEmail = prefs.get("email", null);
         String savedPassword = prefs.get("password", null);
@@ -108,18 +121,32 @@ public class LoginController {
         }
     }
 
-    /**
-     * Salva ou apaga as credenciais com base na seleção da CheckBox "Lembrar-me".
-     */
     private void savePreferences() {
         if (rememberMeCheckBox.isSelected()) {
-            // Se a caixa está marcada, salva o e-mail and a senha
             prefs.put("email", emailField.getText());
             prefs.put("password", passwordField.getText());
         } else {
-            // Se a caixa não está marcada, remove quaisquer credenciais salvas
             prefs.remove("email");
             prefs.remove("password");
         }
+    }
+
+    // --- MÉTODOS PARA OS BOTÕES DA JANELA ---
+    @FXML
+    private void handleMinimize() {
+        Stage stage = (Stage) rootPane.getScene().getWindow();
+        stage.setIconified(true);
+    }
+
+    @FXML
+    private void handleMaximize() {
+        Stage stage = (Stage) rootPane.getScene().getWindow();
+        stage.setMaximized(!stage.isMaximized());
+    }
+
+    @FXML
+    private void handleClose() {
+        Platform.exit(); // Fecha a aplicação de forma segura
+        System.exit(0);
     }
 }

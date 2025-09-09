@@ -9,86 +9,115 @@
             xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
             styleClass="root" stylesheets="/css/styles.css">
     <top>
-        <HBox alignment="CENTER_LEFT" prefHeight="90.0" spacing="15">
-            <padding>
-                <Insets left="20" right="20"/>
-            </padding>
-            <ImageView fitHeight="60.0" preserveRatio="true">
-                <image>
-                    <Image url="@/images/logo_aura.png"/>
-                </image>
-                <HBox.margin>
-                    <Insets right="25.0"/>
-                </HBox.margin>
-            </ImageView>
-            <fx:define>
-                <ToggleGroup fx:id="navGroup"/>
-            </fx:define>
-            
-            <ToggleButton id="Campaign" toggleGroup="$navGroup" styleClass="nav-button" selected="true" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/campanha_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-            
-            <ToggleButton id="Contacts" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/contatos_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
+        <VBox>
+            <HBox alignment="CENTER_LEFT" styleClass="title-bar" fx:id="titleBar">
+                <padding><Insets left="15" right="10"/></padding>
+                <ImageView fitHeight="35.0" preserveRatio="true">
+                    <image>
+                        <Image url="@/images/logo_aura.png"/>
+                    </image>
+                </ImageView>
+                <Region HBox.hgrow="ALWAYS" />
 
-            <ToggleButton id="Templates" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/modelos_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-            
-            <ToggleButton id="WhatsApp" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/aquecedor_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-            
-            <ToggleButton id="AITrainer" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/treinadoria_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-            
-            <ToggleButton id="Extractor" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/extratordcontatos_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-            
-            <ToggleButton id="Reports" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/relatorio_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-            
-            <ToggleButton id="Settings" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
-                <graphic>
-                    <ImageView fitHeight="45.0" preserveRatio="true">
-                        <image><Image url="@/images/configuracao_logo.png"/></image>
-                    </ImageView>
-                </graphic>
-            </ToggleButton>
-        </HBox>
+                <HBox alignment="CENTER" styleClass="window-buttons-container">
+                    <Button fx:id="minimizeButton" onAction="#handleMinimize" styleClass="window-button, minimize-button">
+                        <graphic>
+                            <ImageView fx:id="minimizeIcon" fitHeight="8.0" fitWidth="8.0" preserveRatio="true">
+                                <image><Image url="@/images/minimize.png"/></image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                    <Button fx:id="maximizeButton" onAction="#handleMaximize" styleClass="window-button, maximize-button">
+                        <graphic>
+                            <ImageView fx:id="maximizeIcon" fitHeight="8.0" fitWidth="8.0" preserveRatio="true">
+                                <image><Image url="@/images/maximize.png"/></image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                    <Button fx:id="closeButton" onAction="#handleClose" styleClass="window-button, close-button">
+                        <graphic>
+                            <ImageView fx:id="closeIcon" fitHeight="8.0" fitWidth="8.0" preserveRatio="true">
+                                <image><Image url="@/images/close.png"/></image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                </HBox>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" prefHeight="90.0" spacing="15">
+                <padding>
+                    <Insets left="20" right="20"/>
+                </padding>
+
+                <fx:define>
+                    <ToggleGroup fx:id="navGroup"/>
+                </fx:define>
+
+                <ToggleButton id="Campaign" toggleGroup="$navGroup" styleClass="nav-button" selected="true" HBox.hgrow="ALWAYS">
+                     <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                            <image><Image url="@/images/campanha_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                 </ToggleButton>
+
+                <ToggleButton id="Contacts" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                            <image><Image url="@/images/contatos_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+
+                <ToggleButton id="Templates" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                             <image><Image url="@/images/modelos_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+
+                <ToggleButton id="WhatsApp" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                            <image><Image url="@/images/aquecedor_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+
+                <ToggleButton id="AITrainer" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                            <image><Image url="@/images/treinadoria_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+
+                <ToggleButton id="Extractor" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                         <ImageView fitHeight="45.0" preserveRatio="true">
+                            <image><Image url="@/images/extratordcontatos_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+
+                <ToggleButton id="Reports" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                            <image><Image url="@/images/relatorio_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+
+                <ToggleButton id="Settings" toggleGroup="$navGroup" styleClass="nav-button" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <ImageView fitHeight="45.0" preserveRatio="true">
+                           <image><Image url="@/images/configuracao_logo.png"/></image>
+                        </ImageView>
+                    </graphic>
+                </ToggleButton>
+            </HBox>
+        </VBox>
     </top>
     <center>
     </center>

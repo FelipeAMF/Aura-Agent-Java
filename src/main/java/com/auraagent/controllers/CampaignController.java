@@ -1,42 +1,39 @@
 package com.auraagent.controllers;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import com.auraagent.models.ContactModel;
 import com.auraagent.models.ReportModel;
 import com.auraagent.models.WhatsappAccount;
+import com.auraagent.services.AIService;
 import com.auraagent.services.FirebaseService;
+import com.auraagent.services.SchedulerService;
 import com.auraagent.services.WhatsappService;
 import com.auraagent.utils.JavaFxUtils;
-
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
 import javafx.stage.FileChooser;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class CampaignController implements MainAppController.InitializableController {
 
@@ -62,6 +59,14 @@ public class CampaignController implements MainAppController.InitializableContro
     private Button attachImageButton, removeImageButton;
     @FXML
     private Label attachedImageLabel;
+    @FXML
+    private CheckBox smartSendCheckBox;
+    @FXML
+    private DatePicker scheduleDatePicker;
+    @FXML
+    private TextField scheduleTimeField;
+    @FXML
+    private Button scheduleButton;
 
     private File attachedImageFile = null;
     private String userId;
@@ -77,6 +82,8 @@ public class CampaignController implements MainAppController.InitializableContro
     private final ObservableList<String> templateNames = FXCollections.observableArrayList();
     private final List<ContactModel> contactsInList = new ArrayList<>();
 
+    private static final ExecutorService AI_TASK_EXECUTOR = Executors.newFixedThreadPool(1);
+
     @Override
     public void initialize(String userId) {
         this.userId = userId;
@@ -87,6 +94,11 @@ public class CampaignController implements MainAppController.InitializableContro
     @Override
     public void onViewShown() {
         refreshData();
+    }
+
+    @Override
+    public void shutdown() {
+        SchedulerService.getInstance().shutdown();
     }
 
     private void setupBindings() {
@@ -102,6 +114,10 @@ public class CampaignController implements MainAppController.InitializableContro
         stopButton.disableProperty().bind(isSending.not());
         attachImageButton.disableProperty().bind(isSending);
         removeImageButton.disableProperty().bind(isSending);
+        smartSendCheckBox.disableProperty().bind(isSending);
+        scheduleDatePicker.disableProperty().bind(isSending);
+        scheduleTimeField.disableProperty().bind(isSending);
+        scheduleButton.disableProperty().bind(isSending);
         pauseButton.textProperty().bind(
                 Bindings.when(isPaused).then("Retomar").otherwise("Pausar"));
     }
@@ -256,22 +272,78 @@ public class CampaignController implements MainAppController.InitializableContro
     }
 
     @FXML
-    private void handleStartSending() {
-        List<String> selectedSenders = senderAccounts.stream()
-                .filter(CheckBox::isSelected)
-                .map(cb -> cb.getText().split(" ")[0])
-                .collect(Collectors.toList());
+    private void handleScheduleCampaign() {
+        LocalDate date = scheduleDatePicker.getValue();
+        String timeString = scheduleTimeField.getText();
 
-        if (contactsInList.isEmpty() || selectedSenders.isEmpty()) {
+        if (date == null || timeString.isBlank()) {
+            JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Dados Incompletos",
+                    "Por favor, selecione a data e a hora para o agendamento.");
+            return;
+        }
+
+        LocalTime time;
+        try {
+            time = LocalTime.parse(timeString, DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (DateTimeParseException e) {
+            JavaFxUtils.showAlert(Alert.AlertType.ERROR, "Formato de Hora Inválido",
+                    "Por favor, insira a hora no formato HH:mm (ex: 14:30).");
+            return;
+        }
+
+        LocalDateTime scheduledDateTime = LocalDateTime.of(date, time);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (scheduledDateTime.isBefore(now)) {
+            JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Data Inválida",
+                    "A data e hora do agendamento não podem estar no passado.");
+            return;
+        }
+
+        if (!isCampaignReady()) {
+            JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Campanha Incompleta",
+                    "Selecione uma lista de contatos e pelo menos uma conta de envio antes de agendar.");
+            return;
+        }
+
+        long delay = Duration.between(now, scheduledDateTime).toMillis();
+        SchedulerService.getInstance().schedule(this::startSendingLogic, delay, TimeUnit.MILLISECONDS);
+
+        isSending.set(true);
+        statusLabel.setText("Campanha agendada para "
+                + scheduledDateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm")));
+        JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Agendamento Confirmado",
+                "A sua campanha foi agendada com sucesso!");
+    }
+
+    @FXML
+    private void handleStartSending() {
+        if (!isCampaignReady()) {
             JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Aviso",
                     "Selecione uma lista de contatos e pelo menos uma conta de envio.");
             return;
         }
+        startSendingLogic();
+    }
 
-        isSending.set(true);
-        isPaused.set(false);
+    private void startSendingLogic() {
+        if (smartSendCheckBox.isSelected() && !isAIServerActive()) {
+            Platform.runLater(() -> JavaFxUtils.showAlert(Alert.AlertType.WARNING, "Servidor de IA Inativo",
+                    "Para usar o Envio Inteligente, por favor, ative o Servidor de IA na aba 'Treinador de IA'."));
+            return;
+        }
+
+        Platform.runLater(() -> {
+            isSending.set(true);
+            isPaused.set(false);
+        });
 
         campaignThread = new Thread(() -> {
+            List<String> selectedSenders = senderAccounts.stream()
+                    .filter(CheckBox::isSelected)
+                    .map(cb -> cb.getText().split(" ")[0])
+                    .collect(Collectors.toList());
+
             int totalContacts = contactsInList.size();
             AtomicInteger successCount = new AtomicInteger(0);
             AtomicInteger failCount = new AtomicInteger(0);
@@ -285,12 +357,23 @@ public class CampaignController implements MainAppController.InitializableContro
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        break;
                     }
                 }
 
                 ContactModel contact = contactsInList.get(i);
                 String sender = selectedSenders.get(i % selectedSenders.size());
-                String messageToSend = parseSpintax(spintaxMessage.getText()).replace("{nome}", contact.getName());
+                String baseMessage = parseSpintax(spintaxMessage.getText()).replace("{nome}", contact.getName());
+                String messageToSend;
+
+                if (smartSendCheckBox.isSelected()) {
+                    final int currentProgress = i + 1;
+                    Platform.runLater(() -> statusLabel
+                            .setText(String.format("IA a gerar mensagem %d de %d...", currentProgress, totalContacts)));
+                    messageToSend = AIService.rephraseMessageAsync(baseMessage, AI_TASK_EXECUTOR).join();
+                } else {
+                    messageToSend = baseMessage;
+                }
 
                 final int currentProgress = i + 1;
                 Platform.runLater(() -> {
@@ -337,6 +420,27 @@ public class CampaignController implements MainAppController.InitializableContro
         campaignThread.start();
     }
 
+    private boolean isCampaignReady() {
+        List<String> selectedSenders = senderAccounts.stream()
+                .filter(CheckBox::isSelected)
+                .map(cb -> cb.getText().split(" ")[0])
+                .collect(Collectors.toList());
+        return !contactsInList.isEmpty() && !selectedSenders.isEmpty();
+    }
+
+    private boolean isAIServerActive() {
+        try {
+            var client = java.net.http.HttpClient.newHttpClient();
+            var request = java.net.http.HttpRequest.newBuilder(
+                    java.net.URI.create("http://localhost:8080/"))
+                    .build();
+            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @FXML
     private void handleTogglePause() {
         isPaused.set(!isPaused.get());
@@ -349,6 +453,9 @@ public class CampaignController implements MainAppController.InitializableContro
                 "Tem certeza que deseja parar o envio?")) {
             isSending.set(false);
             isPaused.set(false);
+            if (campaignThread != null) {
+                campaignThread.interrupt();
+            }
         }
     }
 

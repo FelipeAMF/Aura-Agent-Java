@@ -11,15 +11,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.nio.file.Files;
 
 public class WhatsappService {
 
@@ -28,7 +27,6 @@ public class WhatsappService {
     private static final String API_URL = getNodeApiUrl();
 
     private static String getNodeApiUrl() {
-        // Obtém a porta diretamente do ProcessManager
         int port = ProcessManager.getCurrentPort();
         return "http://localhost:" + port;
     }
@@ -81,11 +79,10 @@ public class WhatsappService {
                             return new ArrayList<>();
                         }
                         JsonNode root = objectMapper.readTree(response.body());
-                        List<WhatsappMessage> messages = objectMapper.convertValue(
-                            root.get("messages"), 
-                            new TypeReference<List<WhatsappMessage>>(){}
-                        );
-                        return messages;
+                        return objectMapper.convertValue(
+                                root.get("messages"),
+                                new TypeReference<List<WhatsappMessage>>() {
+                                });
                     } catch (Exception e) {
                         System.err.println("Erro ao processar mensagens recebidas: " + e.getMessage());
                         return new ArrayList<>();
@@ -106,13 +103,7 @@ public class WhatsappService {
                     .build();
 
             return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(response -> {
-                        if (response.statusCode() != 200) {
-                            System.err.println("Erro na requisição para " + endpoint + ": " + response.statusCode());
-                            return false;
-                        }
-                        return true;
-                    })
+                    .thenApply(response -> response.statusCode() == 200)
                     .exceptionally(e -> {
                         System.err.println("Erro de comunicação com o servidor de WhatsApp: " + e.getMessage());
                         return false;
@@ -123,28 +114,18 @@ public class WhatsappService {
         }
     }
 
-    /**
-     * Sobrecarga do método para enviar apenas uma mensagem de texto.
-     * Chama o método principal com o caminho da imagem como nulo.
-     */
     public CompletableFuture<Boolean> sendMessageAsync(String sessionId, String number, String message) {
         return sendMessageAsync(sessionId, number, null, message);
     }
 
-    /**
-     * Envia uma mensagem. Se o caminho da imagem for fornecido, envia a imagem com
-     * a
-     * mensagem como legenda. Caso contrário, envia apenas o texto.
-     */
     public CompletableFuture<Boolean> sendMessageAsync(String sessionId, String number, Path imagePath,
             String message) {
         try {
             Map<String, Object> payload = new HashMap<>();
             payload.put("sessionId", sessionId);
             payload.put("to", number);
-            payload.put("message", message); // Será a mensagem ou a legenda
+            payload.put("message", message);
 
-            // Se um ficheiro de imagem foi anexado, adiciona os seus dados ao payload
             if (imagePath != null) {
                 byte[] imageBytes = Files.readAllBytes(imagePath);
                 String imageData = Base64.getEncoder().encodeToString(imageBytes);
@@ -164,17 +145,54 @@ public class WhatsappService {
                     .build();
 
             return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(response -> {
-                        if (response.statusCode() != 200) {
-                            System.err.println(
-                                    "Erro ao enviar mensagem: " + response.statusCode() + " -> " + response.body());
-                        }
-                        return response.statusCode() == 200;
-                    });
+                    .thenApply(response -> response.statusCode() == 200);
 
         } catch (Exception e) {
             System.err.println("Erro ao construir a requisição de envio de mensagem: " + e.getMessage());
             return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    // MÉTODO CORRIGIDO
+    public CompletableFuture<Map<String, Boolean>> validateNumbersAsync(String sessionId, List<String> numbers) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("sessionId", sessionId);
+            payload.put("numbers", numbers);
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(API_URL + "/validate-numbers"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(response -> {
+                        if (response.statusCode() == 200) {
+                            try {
+                                System.out.println("[Validador] Resposta do Servidor: " + response.body());
+                                return objectMapper.readValue(response.body(),
+                                        new TypeReference<Map<String, Boolean>>() {
+                                        });
+                            } catch (IOException e) {
+                                System.err.println("[Validador] Erro ao processar JSON da resposta: " + e.getMessage());
+                                return new HashMap<String, Boolean>();
+                            }
+                        } else {
+                            System.err.println(
+                                    "[Validador] Erro na resposta do servidor. Código: " + response.statusCode());
+                            System.err.println("[Validador] Corpo da Resposta: " + response.body());
+                            return new HashMap<String, Boolean>();
+                        }
+                    })
+                    .exceptionally(ex -> {
+                        System.err.println("[Validador] Exceção ao comunicar com o servidor: " + ex.getMessage());
+                        return new HashMap<String, Boolean>();
+                    });
+        } catch (IOException e) {
+            System.err.println("Erro ao construir a requisição de validação de números: " + e.getMessage());
+            return CompletableFuture.completedFuture(new HashMap<>());
         }
     }
 }

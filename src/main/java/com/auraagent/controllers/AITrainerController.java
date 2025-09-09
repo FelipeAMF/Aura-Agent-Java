@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -15,6 +17,8 @@ import java.util.stream.Stream;
 import com.auraagent.models.WhatsappAccount;
 import com.auraagent.services.AIService;
 import com.auraagent.services.FirebaseService;
+import com.auraagent.services.ProcessManager;
+import com.auraagent.services.SearchService; // <<-- IMPORT ADICIONADO
 import com.auraagent.services.WhatsappService;
 import com.auraagent.utils.JavaFxUtils;
 
@@ -33,9 +37,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class AITrainerController implements MainAppController.InitializableController {
 
@@ -56,7 +57,7 @@ public class AITrainerController implements MainAppController.InitializableContr
     private String userToken;
 
     private final SimpleBooleanProperty isServerRunning = new SimpleBooleanProperty(false);
-    private final StringProperty serverStatus = new SimpleStringProperty("Inativo"); // Nova propriedade para o status
+    private final StringProperty serverStatus = new SimpleStringProperty("Inativo");
     private final ObservableList<String> availableModels = FXCollections.observableArrayList();
     private final ObservableList<String> availableAccounts = FXCollections.observableArrayList();
     private final WhatsappService whatsappService = new WhatsappService();
@@ -76,26 +77,33 @@ public class AITrainerController implements MainAppController.InitializableContr
                 .addListener((obs, oldVal, newVal) -> onAccountSelected(newVal));
 
         loadAvailableModels();
-        loadAccountsAsync();
+        // A primeira carga de contas acontece aqui
+        refreshData();
+    }
+
+    // MÉTODO ADICIONADO PARA CORRIGIR O PROBLEMA
+    @Override
+    public void onViewShown() {
+        // Esta linha garante que os dados são atualizados sempre que a aba é exibida
+        refreshData();
     }
 
     private void setupBindings() {
-        // Apenas o ComboBox do modelo será desativado, permitindo a edição de personalidade com o servidor rodando.
         modelComboBox.disableProperty().bind(isServerRunning);
         chatPane.disableProperty().bind(isServerRunning.not());
 
-        aiStatusLabel.textProperty().bind(serverStatus); 
+        aiStatusLabel.textProperty().bind(serverStatus);
 
         toggleServerButton.textProperty().bind(
                 Bindings.when(isServerRunning).then("Desativar Servidor de IA").otherwise("Ativar Servidor de IA"));
 
         serverStatus.addListener((obs, oldVal, newVal) -> {
             aiStatusLabel.getStyleClass().removeAll("success-label", "danger-label", "warning-label");
-            if (newVal.equals("Ativo")) {
+            if ("Ativo".equals(newVal)) {
                 aiStatusLabel.getStyleClass().add("success-label");
-            } else if (newVal.equals("Inativo")) {
+            } else if ("Inativo".equals(newVal)) {
                 aiStatusLabel.getStyleClass().add("danger-label");
-            } else { 
+            } else {
                 aiStatusLabel.getStyleClass().add("warning-label");
             }
         });
@@ -108,14 +116,22 @@ public class AITrainerController implements MainAppController.InitializableContr
     private void loadAccountsAsync() {
         whatsappService.getStatusAsync().thenAcceptAsync(accountsData -> {
             Platform.runLater(() -> {
+                String selected = accountComboBox.getSelectionModel().getSelectedItem();
                 availableAccounts.clear();
                 availableAccounts.add("Selecione uma conta...");
                 for (WhatsappAccount acc : accountsData) {
-                    if (acc.getPhoneNumber() != null) {
+                    // Apenas contas conectadas com número de telefone aparecem
+                    if ("Conectado".equals(acc.getStatus()) && acc.getPhoneNumber() != null) {
                         availableAccounts.add(acc.getSessionId() + " (" + acc.getPhoneNumber() + ")");
                     }
                 }
-                accountComboBox.getSelectionModel().selectFirst();
+
+                // Tenta manter a seleção anterior, se ainda existir
+                if (selected != null && availableAccounts.contains(selected)) {
+                    accountComboBox.getSelectionModel().select(selected);
+                } else {
+                    accountComboBox.getSelectionModel().selectFirst();
+                }
             });
         });
     }
@@ -147,8 +163,7 @@ public class AITrainerController implements MainAppController.InitializableContr
         }
 
         String sessionId = accountName.split(" ")[0];
-        
-        // Carrega a personalidade do Firebase
+
         FirebaseService.getAIPersonality(userId, sessionId).thenAccept(prompt -> {
             Platform.runLater(() -> {
                 personalityPromptArea.setText(prompt != null ? prompt : "");
@@ -186,15 +201,18 @@ public class AITrainerController implements MainAppController.InitializableContr
                     builder.redirectErrorStream(true);
                     aiServerProcess = builder.start();
 
-                    // Nova lógica para ler a saída do servidor e esperar pela confirmação
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(aiServerProcess.getInputStream()))) {
+                    // 👉 registra no ProcessManager
+                    ProcessManager.setAiServerProcess(aiServerProcess);
+
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(aiServerProcess.getInputStream()))) {
                         String line;
                         boolean serverReady = false;
                         while ((line = reader.readLine()) != null) {
-                            System.out.println("[AI Server]: " + line); // Log para depuração
-                            if (line.contains("listening on")) { 
+                            System.out.println("[AI Server]: " + line);
+                            if (line.contains("listening on")) {
                                 serverReady = true;
-                                break; 
+                                break;
                             }
                         }
 
@@ -202,33 +220,33 @@ public class AITrainerController implements MainAppController.InitializableContr
                             Platform.runLater(() -> {
                                 isServerRunning.set(true);
                                 serverStatus.set("Ativo");
-                                JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Sucesso", "Servidor de IA ativado com sucesso!");
+                                JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Sucesso",
+                                        "Servidor de IA ativado com sucesso!");
                                 toggleServerButton.setDisable(false);
                             });
                         } else {
-                            throw new IOException("O servidor de IA foi encerrado inesperadamente antes de ficar pronto.");
+                            throw new IOException(
+                                    "O servidor de IA foi encerrado inesperadamente antes de ficar pronto.");
                         }
                     }
 
                 } catch (IOException e) {
-                    if (aiServerProcess != null) {
-                        aiServerProcess.destroy();
-                    }
+                    ProcessManager.stopAiServer(); // 👉 mata se falhou
                     Platform.runLater(() -> {
                         isServerRunning.set(false);
                         serverStatus.set("Inativo");
-                        JavaFxUtils.showAlert(Alert.AlertType.ERROR, "Erro", "Não foi possível iniciar o servidor de IA: " + e.getMessage());
+                        JavaFxUtils.showAlert(Alert.AlertType.ERROR, "Erro",
+                                "Não foi possível iniciar o servidor de IA: " + e.getMessage());
                         toggleServerButton.setDisable(false);
                     });
                 }
             });
         } else {
-            if (aiServerProcess != null) {
-                aiServerProcess.destroy();
-                isServerRunning.set(false);
-                serverStatus.set("Inativo");
-                JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Sucesso", "Servidor de IA desativado.");
-            }
+            ProcessManager.stopAiServer(); // 👉 encerra corretamente
+            aiServerProcess = null;
+            isServerRunning.set(false);
+            serverStatus.set("Inativo");
+            JavaFxUtils.showAlert(Alert.AlertType.INFORMATION, "Sucesso", "Servidor de IA desativado.");
         }
     }
 
@@ -243,7 +261,6 @@ public class AITrainerController implements MainAppController.InitializableContr
         String sessionId = account.split(" ")[0];
         String prompt = personalityPromptArea.getText();
 
-        // Salva a personalidade no Firebase
         FirebaseService.saveAIPersonality(userId, sessionId, prompt).thenAccept(success -> {
             Platform.runLater(() -> {
                 if (success) {
@@ -256,23 +273,115 @@ public class AITrainerController implements MainAppController.InitializableContr
         });
     }
 
+    // =================================================================================
+    // MÉTODO ATUALIZADO PARA INCLUIR A LÓGICA DE BUSCA
+    // =================================================================================
     @FXML
     private void handleSendTestMessage() {
         String message = userTestInput.getText();
-        if (message == null || message.isBlank())
+        if (message == null || message.isBlank()) {
             return;
+        }
 
-        String userMessage = message;
+        String userMessage = message.trim();
         userTestInput.clear();
         chatHistoryArea.appendText("Você: " + userMessage + "\n");
-        chatTestHistory.add(new java.util.HashMap<String, String>() {
+        sendTestMessageButton.setDisable(true);
+
+        // Verifica se é um comando de busca
+        if (userMessage.toLowerCase().startsWith("/search ")) {
+            String query = userMessage.substring(8).trim();
+            handleSearchCommand(query);
+        } else {
+            handleStandardMessage(userMessage);
+        }
+    }
+
+    private void handleSearchCommand(String query) {
+        chatHistoryArea.appendText("IA: Buscando na internet por \"" + query + "\"...\n");
+
+        SearchService.searchInternet(query).thenAcceptAsync(searchResults -> {
+            Platform.runLater(() -> {
+                // Remove a mensagem "Buscando..."
+                int lastLineStart = chatHistoryArea.getText().lastIndexOf("IA: Buscando na internet");
+                if (lastLineStart != -1) {
+                    chatHistoryArea.deleteText(lastLineStart, chatHistoryArea.getLength());
+                }
+
+                // Verifica se a busca retornou um erro (ex: API Key não configurada)
+                if (searchResults.startsWith("ERRO:")) {
+                    chatHistoryArea.appendText("IA: " + searchResults + "\n\n");
+                    sendTestMessageButton.setDisable(false);
+                    return;
+                }
+
+                chatHistoryArea.appendText("IA a pensar...\n");
+
+                // Constrói um prompt específico para a IA resumir os resultados
+                String promptForAI = "Com base nos seguintes resultados de pesquisa, responda à pergunta original do usuário de forma clara e concisa.\n\n"
+                        + "--- RESULTADOS DA PESQUISA ---\n"
+                        + searchResults + "\n"
+                        + "--- FIM DOS RESULTADOS ---\n\n"
+                        + "Pergunta Original: " + query;
+
+                // Cria um histórico temporário para esta única interação
+                List<Object> searchContextHistory = new ArrayList<>();
+                // Não adicionamos a mensagem do usuário ao histórico principal, pois ela era um
+                // comando
+
+                new Thread(() -> {
+                    // Usamos o histórico temporário aqui
+                    AIService.generateResponseAsync(searchContextHistory, promptForAI, AI_TASK_EXECUTOR)
+                            .thenAcceptAsync(response -> {
+                                Platform.runLater(() -> {
+                                    int thinkingLineStart = chatHistoryArea.getText().lastIndexOf("IA a pensar...");
+                                    if (thinkingLineStart != -1) {
+                                        chatHistoryArea.deleteText(thinkingLineStart, chatHistoryArea.getLength());
+                                    }
+
+                                    chatHistoryArea.appendText("IA: " + response + "\n\n");
+
+                                    // Adiciona a pergunta original e a resposta da IA ao histórico principal
+                                    // para que a conversa tenha contexto.
+                                    chatTestHistory.add(new HashMap<String, String>() {
+                                        {
+                                            put("role", "user");
+                                            put("content", "Pesquise por: " + query);
+                                        }
+                                    });
+                                    chatTestHistory.add(new HashMap<String, String>() {
+                                        {
+                                            put("role", "assistant");
+                                            put("content", response);
+                                        }
+                                    });
+
+                                    sendTestMessageButton.setDisable(false);
+                                });
+                            });
+                }).start();
+            });
+        });
+    }
+
+    private void handleStandardMessage(String userMessage) {
+        // Lógica original para mensagens normais
+        if (chatTestHistory.isEmpty()) {
+            chatTestHistory.add(new HashMap<String, String>() {
+                {
+                    put("role", "system");
+                    put("content", personalityPromptArea.getText());
+                }
+            });
+        }
+
+        chatTestHistory.add(new HashMap<String, String>() {
             {
                 put("role", "user");
                 put("content", userMessage);
             }
         });
 
-        sendTestMessageButton.setDisable(true);
         chatHistoryArea.appendText("IA a pensar...\n");
 
         new Thread(() -> {
@@ -285,12 +394,14 @@ public class AITrainerController implements MainAppController.InitializableContr
                             }
 
                             chatHistoryArea.appendText("IA: " + response + "\n\n");
-                            chatTestHistory.add(new java.util.HashMap<String, String>() {
+
+                            chatTestHistory.add(new HashMap<String, String>() {
                                 {
                                     put("role", "assistant");
                                     put("content", response);
                                 }
                             });
+
                             sendTestMessageButton.setDisable(false);
                         });
                     });
